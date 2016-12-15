@@ -24,6 +24,7 @@
 #ifndef __CM0_CORE_H__
 #define __CM0_CORE_H__
 
+
 /** @addtogroup CMSIS_CM0_core_LintCinfiguration CMSIS CM0 Core Lint Configuration
  *
  * List of Lint messages which will be suppressed and not shown:
@@ -81,6 +82,7 @@
 #define     __IO    volatile                  /*!< defines 'read / write' permissions   */
 
 
+#include "stm32f0xx.h"
 
 /*******************************************************************************
  *                 Register Abstraction

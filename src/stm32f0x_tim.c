@@ -17,7 +17,7 @@
 #include "stm32f0x_tim.h"
 #include "stm32f0xx_tim.h"
 #include "stm32f0xx_misc.h"
-#include "stm32f0x_uart.h"
+
 #include "hard.h"
 
 //--- VARIABLES EXTERNAS ---//

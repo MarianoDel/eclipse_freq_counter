@@ -11,8 +11,8 @@
 
 //-- Defines For Configuration -------------------
 //---- Configuration for Hardware Versions -------
-//#define VER_1_0
-#define VER_1_1
+#define VER_1_0
+//#define VER_1_1
 
 
 //---- Configuration for Firmware ----------------
