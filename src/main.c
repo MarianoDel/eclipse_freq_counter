@@ -17,7 +17,6 @@
 #include "stm32f0x_gpio.h"
 #include "stm32f0x_tim.h"
 #include "hard.h"
-#include "main.h"
 #include "spi.h"
 
 #include "core_cm0.h"
@@ -68,7 +67,7 @@ volatile unsigned short timer_dmx_display_show;
 volatile unsigned char display_timer;
 volatile unsigned char switches_timer;
 volatile unsigned char filter_timer;
-static __IO uint32_t TimingDelay;
+
 
 volatile unsigned char door_filter;
 volatile unsigned char take_sample;
@@ -77,29 +76,6 @@ volatile unsigned char move_relay;
 volatile unsigned char secs = 0;
 volatile unsigned short minutes = 0;
 
-// ------- del display -------
-unsigned char numbers[LAST_NUMBER];
-unsigned char * p_numbers;
-
-unsigned char last_digit;
-unsigned char display_state;
-unsigned char ds3_number;
-unsigned char ds2_number;
-unsigned char ds1_number;
-
-unsigned char display_blinking_timer = 0;
-unsigned char display_blinking = 0;
-unsigned char display_was_on = 0;
-
-
-// ------- de los switches -------
-unsigned short s1;
-unsigned short s2;
-
-// ------- del DMX -------
-volatile unsigned char signal_state = 0;
-volatile unsigned char dmx_timeout_timer = 0;
-//unsigned short tim_counter_65ms = 0;
 
 // ------- de los filtros DMX -------
 #define LARGO_F		32
@@ -111,30 +87,12 @@ unsigned char vd3 [LARGO_F + 1];
 unsigned char vd4 [LARGO_F + 1];
 
 
-#define IDLE	0
-#define LOOK_FOR_BREAK	1
-#define LOOK_FOR_MARK	2
-#define LOOK_FOR_START	3
 
 //--- FUNCIONES DEL MODULO ---//
 void Delay(__IO uint32_t nTime);
 void TimingDelay_Decrement(void);
 
 
-unsigned char Door_Open (void);
-unsigned short Get_Temp (void);
-unsigned short Get_Pote (void);
-void Update_PWM (unsigned short);
-
-// ------- del display -------
-void UpdateDisplay (void);
-void VectorToDisplay (unsigned char);
-void ShowNumbers (unsigned short);
-void SendSegment (unsigned char, unsigned char);
-void ShowNumbersAgain (void);
-unsigned char TranslateNumber (unsigned char);
-unsigned short FromDsToChannel (void);
-#define FromChannelToDs(X)	ShowNumbers((X))
 
 
 // ------- de los switches -------
@@ -143,20 +101,7 @@ unsigned char CheckS1 (void);
 unsigned char CheckS2 (void);
 #define TIMER_FOR_CAT_SW	200
 
-// ------- del DMX -------
-extern void EXTI4_15_IRQHandler(void);
-#define DMX_TIMEOUT	20
-void DMX_Ena(void);
-void DMX_Disa(void);
-unsigned char MAFilter (unsigned char, unsigned char *);
 
-//--- FILTROS DE SENSORES ---//
-#define LARGO_FILTRO 16
-#define DIVISOR      4   //2 elevado al divisor = largo filtro
-//#define LARGO_FILTRO 32
-//#define DIVISOR      5   //2 elevado al divisor = largo filtro
-unsigned short vtemp [LARGO_FILTRO + 1];
-unsigned short vpote [LARGO_FILTRO + 1];
 
 //--- FIN DEFINICIONES DE FILTRO ---//
 
@@ -174,15 +119,6 @@ int main(void)
 	unsigned short last_channel;
 	unsigned short current_temp = 0;
 
-#ifdef WITH_GRANDMASTER
-	unsigned short acc = 0;
-	unsigned char dummy = 0;
-#endif
-#ifdef RGB_FOR_CHANNELS
-	unsigned char show_channels_state = 0;
-	unsigned char fixed_data[2];		//la eleccion del usuario en los canales de 0 a 100
-	unsigned char need_to_save = 0;
-#endif
 
 	//!< At this stage the microcontroller clock setting is already configured,
     //   this is done through SystemInit() function which is called from startup
@@ -533,14 +469,6 @@ int main(void)
 	LED_OFF;
 
 
-#ifdef VER_1_0
-	timer_standby = 1000;
-	ds1_number = DISPLAY_H;				//Hardware
-	ds2_number = DISPLAY_1P;			//1.
-	ds3_number = DISPLAY_ZERO;			//0
-	while (timer_standby)
-		UpdateDisplay();
-#endif
 
 
 	//--- Main loop ---//
@@ -575,28 +503,6 @@ int main(void)
 
 		}
 
-		UpdateDisplay ();
-		UpdateSwitches ();
-
-		//sensado de temperatura
-		if (!take_sample)
-		{
-			take_sample = 10;	//tomo muestra cada 10ms
-			current_temp = Get_Temp();
-
-			if ((main_state != MAIN_TEMP_OVERLOAD) && (main_state != MAIN_TEMP_OVERLOAD_B))
-			{
-				if (current_temp > TEMP_IN_65)
-				{
-					//corto los leds	ver si habia DMX cortar y poner nuevamente
-					main_state = MAIN_TEMP_OVERLOAD;
-				}
-				else if (current_temp > TEMP_IN_35)
-					CTRL_FAN_ON;
-				else if (current_temp < TEMP_IN_30)
-					CTRL_FAN_OFF;
-			}
-		}
 	}	//termina while(1)
 
 	return 0;
@@ -611,17 +517,6 @@ void Update_PWM (unsigned short pwm)
 }
 
 
-/**
-  * @brief  Inserts a delay time.
-  * @param  nTime: specifies the delay time length, in milliseconds.
-  * @retval None
-  */
-void Delay(__IO uint32_t nTime)
-{
-  TimingDelay = nTime;
-
-  while(TimingDelay != 0);
-}
 
 
 unsigned char MAFilter (unsigned char new_sample, unsigned char * vsample)
@@ -662,72 +557,9 @@ unsigned short MAFilter16 (unsigned char new_sample, unsigned char * vsample)
     return total_ma >> DIVISOR_F;
 }
 
-unsigned char Door_Open (void)
-{
-	if (door_filter >= DOOR_THRESH)
-		return 1;
-	else
-		return 0;
-}
-
-
-
-void SendSegment (unsigned char display, unsigned char segment)
-{
-	unsigned char dbkp = 0;
-
-	OE_OFF;
-
-#ifdef VER_1_1
-	//PRUEBO desplazando 1 a la izq
-	PWR_DS1_OFF;
-	PWR_DS2_OFF;
-	PWR_DS3_OFF;
-
-	dbkp = display;
-
-    if (segment & 0x80)
-    	display |= 1;
-    else
-    	display &= 0xFE;
-
-    Send_SPI_Single (display);
-    segment <<= 1;
-    Send_SPI_Single (segment);
-
-	if (dbkp == DISPLAY_DS1)
-		PWR_DS1_ON;
-	else if (dbkp == DISPLAY_DS2)
-		PWR_DS2_ON;
-	else if (dbkp == DISPLAY_DS3)
-		PWR_DS3_ON;
-
-#endif
-
-#ifdef VER_1_0
-	//PRUEBO desplazando 1 a la izq
-	display <<= 1;
-    if (segment & 0x80)
-    	display |= 1;
-    else
-    	display &= 0xFE;
-
-    Send_SPI_Single (display);
-    segment <<= 1;
-    Send_SPI_Single (segment);
-#endif
-
-	OE_ON;
-}
-
 
 void TimingDelay_Decrement(void)
 {
-	if (TimingDelay != 0x00)
-	{
-		TimingDelay--;
-	}
-
 	if (wait_ms_var)
 		wait_ms_var--;
 
@@ -740,40 +572,6 @@ void TimingDelay_Decrement(void)
 	if (switches_timer)
 		switches_timer--;
 
-	if (dmx_timeout_timer)
-		dmx_timeout_timer--;
-
-	if (timer_dmx_display_show)
-		timer_dmx_display_show--;
-
-	if (prog_timer)
-		prog_timer--;
-
-	if (take_sample)
-		take_sample--;
-
-	if (filter_timer)
-		filter_timer--;
-
-	if (timer_for_cat_switch)
-		timer_for_cat_switch--;
-
-	if (timer_for_cat_display)
-		timer_for_cat_display--;
-
-	/*
-	//cuenta 1 segundo
-	if (button_timer_internal)
-		button_timer_internal--;
-	else
-	{
-		if (button_timer)
-		{
-			button_timer--;
-			button_timer_internal = 1000;
-		}
-	}
-	*/
 }
 
 

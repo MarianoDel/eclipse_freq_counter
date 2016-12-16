@@ -3,7 +3,7 @@
 #include "stm32f0x_tim.h"	//para Wait_ms
 
 //--- LCD Configurations ---//
-#ifdef VER_1_3
+#ifdef VER_1_0
 #define PINS_DEFINED_IN_HARD
 //#define WITH_STATE_MACHINE		//rutinas SM hay que ir llamando a un callback
 									//y se envia desde un buffer con interrupcion
