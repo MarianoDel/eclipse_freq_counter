@@ -26,23 +26,43 @@ extern volatile unsigned char spi_bytes_left;
   */
 void SPI_Config(void)
 {
+
 	//Habilitar Clk
 	if (!RCC_SPI1_CLK)
 		RCC_SPI1_CLK_ON;
-
-
+//
+//
   //Configuracion SPI
-  SPIx->CR1 &= ~SPI_CR1_SPE;		//deshabilito periferico
   //clk / 256; master; CPOL High; CPHA second clock
-  //SPIx->CR1 = 0;	//TODO: CR1 es el que tiene un error respecto de la config de arriba (verificar que puede ser) AHORRO MUCHA MEMORIA
-  SPIx->CR2 = 0;
-  //SPIx->CR1 |= SPI_CR1_BR_0 | SPI_CR1_BR_1 | SPI_CR1_BR_2 | SPI_CR1_MSTR | SPI_CR1_CPOL | SPI_CR1_CPHA | SPI_CR1_SSM;
-  SPIx->CR1 |= SPI_CR1_MSTR | SPI_CR1_CPOL | SPI_CR1_CPHA | SPI_CR1_SSM;
+  //SPIx->CR1 = SPI_CR1_MSTR | SPI_CR1_BR;
+  SPIx->CR1 = 0;
+  SPIx->CR1 |= SPI_CR1_BR_0 | SPI_CR1_BR_1 | SPI_CR1_BR_2 | SPI_CR1_MSTR | SPI_CR1_CPOL | SPI_CR1_CPHA | SPI_CR1_SSM | SPI_CR1_SSI;
+  //SPIx->CR1 |= SPI_CR1_BR_0 | SPI_CR1_BR_1 | SPI_CR1_BR_2 | SPI_CR1_MSTR | SPI_CR1_CPOL | SPI_CR1_CPHA;
+  //SPIx->CR1 |= SPI_CR1_MSTR | SPI_CR1_CPOL | SPI_CR1_CPHA | SPI_CR1_SSM;
+
+  //SPIx->CR2 = 0;
   //thresh 8 bits; data 8 bits;
   SPIx->CR2 |= SPI_CR2_FRXTH | SPI_CR2_DS_2 | SPI_CR2_DS_1 | SPI_CR2_DS_0;
 
-//  SPIx->I2SCFGR &= (uint16_t)~((uint16_t)SPI_I2SCFGR_I2SMOD);
+  //SPIx->I2SCFGR &= (uint16_t)~((uint16_t)SPI_I2SCFGR_I2SMOD);
   SPIx->CR1 |= SPI_CR1_SPE;		//habilito periferico
+
+
+//
+//	  //Configuracion SPI
+//	  SPIx->CR1 &= ~SPI_CR1_SPE;		//deshabilito periferico
+//	  //clk / 256; master; CPOL High; CPHA second clock
+//	  //SPIx->CR1 = 0;	//TODO: CR1 es el que tiene un error respecto de la config de arriba (verificar que puede ser) AHORRO MUCHA MEMORIA
+//	  SPIx->CR2 = 0;
+//	  //SPIx->CR1 |= SPI_CR1_BR_0 | SPI_CR1_BR_1 | SPI_CR1_BR_2 | SPI_CR1_MSTR | SPI_CR1_CPOL | SPI_CR1_CPHA | SPI_CR1_SSM;
+//	  SPIx->CR1 |= SPI_CR1_MSTR | SPI_CR1_CPOL | SPI_CR1_CPHA | SPI_CR1_SSM;
+//	  //thresh 8 bits; data 8 bits;
+//	  SPIx->CR2 |= SPI_CR2_FRXTH | SPI_CR2_DS_2 | SPI_CR2_DS_1 | SPI_CR2_DS_0;
+//
+//	//  SPIx->I2SCFGR &= (uint16_t)~((uint16_t)SPI_I2SCFGR_I2SMOD);
+//	  SPIx->CR1 |= SPI_CR1_SPE;		//habilito periferico
+//
+//	  SPIx->CR1 &= ~SPI_CR1_SPE;		//deshabilito periferico
 
 }
 

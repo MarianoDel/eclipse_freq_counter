@@ -183,6 +183,9 @@ int main(void)
 
 	 //PRUEBA LED Y OE
 
+		 /* SPI configuration ------------------------------------------------------*/
+	 SPI_Config();
+
 	 while (1)
 	 {
 		 if (LED)
@@ -194,6 +197,7 @@ int main(void)
 		 {
 			 LED_ON;
 			 LE_ON;
+			 Send_SPI_Multiple(0x55);
 		 }
 
 		 Wait_ms(150);
