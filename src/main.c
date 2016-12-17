@@ -197,7 +197,7 @@ int main(void)
 		 {
 			 LED_ON;
 			 LE_ON;
-			 Send_SPI_Multiple(0x55);
+			 Send_SPI_Single(0x55);
 		 }
 
 		 Wait_ms(150);

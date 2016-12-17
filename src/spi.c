@@ -30,52 +30,19 @@ void SPI_Config(void)
 	//Habilitar Clk
 	if (!RCC_SPI1_CLK)
 		RCC_SPI1_CLK_ON;
-//
-//
-  //Configuracion SPI
-  //clk / 256; master; CPOL High; CPHA second clock
-  //SPIx->CR1 = SPI_CR1_MSTR | SPI_CR1_BR;
-  SPIx->CR1 = 0;
-  SPIx->CR1 |= SPI_CR1_BR_0 | SPI_CR1_BR_1 | SPI_CR1_BR_2 | SPI_CR1_MSTR | SPI_CR1_CPOL | SPI_CR1_CPHA | SPI_CR1_SSM | SPI_CR1_SSI;
-  //SPIx->CR1 |= SPI_CR1_BR_0 | SPI_CR1_BR_1 | SPI_CR1_BR_2 | SPI_CR1_MSTR | SPI_CR1_CPOL | SPI_CR1_CPHA;
-  //SPIx->CR1 |= SPI_CR1_MSTR | SPI_CR1_CPOL | SPI_CR1_CPHA | SPI_CR1_SSM;
 
-  //SPIx->CR2 = 0;
-  //thresh 8 bits; data 8 bits;
-  SPIx->CR2 |= SPI_CR2_FRXTH | SPI_CR2_DS_2 | SPI_CR2_DS_1 | SPI_CR2_DS_0;
+	//Configuracion SPI
+	//clk / 256; master; CPOL High; CPHA second clock
+	SPIx->CR1 = 0;
+	SPIx->CR1 |= SPI_CR1_BR_0 | SPI_CR1_BR_1 | SPI_CR1_BR_2 | SPI_CR1_MSTR | SPI_CR1_CPOL | SPI_CR1_CPHA | SPI_CR1_SSM | SPI_CR1_SSI;
+	//SPIx->CR1 |= SPI_CR1_BR_0 | SPI_CR1_BR_1 | SPI_CR1_BR_2 | SPI_CR1_MSTR | SPI_CR1_CPOL | SPI_CR1_CPHA;
+	//SPIx->CR1 |= SPI_CR1_MSTR | SPI_CR1_CPOL | SPI_CR1_CPHA | SPI_CR1_SSM;
 
-  //SPIx->I2SCFGR &= (uint16_t)~((uint16_t)SPI_I2SCFGR_I2SMOD);
-  SPIx->CR1 |= SPI_CR1_SPE;		//habilito periferico
+	//thresh 8 bits; data 8 bits;
+	SPIx->CR2 = SPI_CR2_FRXTH | SPI_CR2_DS_2 | SPI_CR2_DS_1 | SPI_CR2_DS_0;
 
-
-//
-//	  //Configuracion SPI
-//	  SPIx->CR1 &= ~SPI_CR1_SPE;		//deshabilito periferico
-//	  //clk / 256; master; CPOL High; CPHA second clock
-//	  //SPIx->CR1 = 0;	//TODO: CR1 es el que tiene un error respecto de la config de arriba (verificar que puede ser) AHORRO MUCHA MEMORIA
-//	  SPIx->CR2 = 0;
-//	  //SPIx->CR1 |= SPI_CR1_BR_0 | SPI_CR1_BR_1 | SPI_CR1_BR_2 | SPI_CR1_MSTR | SPI_CR1_CPOL | SPI_CR1_CPHA | SPI_CR1_SSM;
-//	  SPIx->CR1 |= SPI_CR1_MSTR | SPI_CR1_CPOL | SPI_CR1_CPHA | SPI_CR1_SSM;
-//	  //thresh 8 bits; data 8 bits;
-//	  SPIx->CR2 |= SPI_CR2_FRXTH | SPI_CR2_DS_2 | SPI_CR2_DS_1 | SPI_CR2_DS_0;
-//
-//	//  SPIx->I2SCFGR &= (uint16_t)~((uint16_t)SPI_I2SCFGR_I2SMOD);
-//	  SPIx->CR1 |= SPI_CR1_SPE;		//habilito periferico
-//
-//	  SPIx->CR1 &= ~SPI_CR1_SPE;		//deshabilito periferico
-
+	SPIx->CR1 |= SPI_CR1_SPE;		//habilito periferico
 }
-
-//void Send_SPI (unsigned char * p, unsigned char bytes)
-//{
-//	/* Waiting until TX FIFO is empty */
-//    while (SPI_GetTransmissionFIFOStatus(SPIx) != SPI_TransmissionFIFOStatus_Empty);
-//
-//	pspi_tx = p;
-//	spi_bytes_left = bytes;
-//
-//    SPI_I2S_ITConfig(SPIx, SPI_I2S_IT_TXE, ENABLE);
-//}
 
 unsigned char Send_Receive_SPI (unsigned char a)
 {
@@ -91,7 +58,7 @@ unsigned char Send_Receive_SPI (unsigned char a)
 	//espero que haya lugar en el buffer
 	while ((SPIx->SR & SPI_TXE) == 0);
 
-	SPIx->DR = a;
+	*(__IO uint8_t *) ((uint32_t)SPIx + (uint32_t)0x0C) = a; //evito enviar 16bits problemas de compilador
 
     //espero tener el dato en RX
     for (j = 0; j < 150; j++)
@@ -113,7 +80,7 @@ void Send_SPI_Multiple (unsigned char a)
 	while ((SPIx->SR & SPI_TXE) == 0);
 
 	//*(__IO uint8_t *) SPIx->DR = a;
-	SPIx->DR = a;
+	*(__IO uint8_t *) ((uint32_t)SPIx + (uint32_t)0x0C) = a; //evito enviar 16bits problemas de compilador
 
 }
 
@@ -124,7 +91,8 @@ void Send_SPI_Single (unsigned char a)
 
 	//tengo espacio
 	//SPIx->DR = a;
-	SPIx->DR = a;
+	//SPIx->DR = a;
+	*(__IO uint8_t *) ((uint32_t)SPIx + (uint32_t)0x0C) = a; //evito enviar 16bits problemas de compilador
 
 	//espero que se transfiera el dato
 	while ((SPIx->SR & SPI_BSY) != 0);
@@ -141,7 +109,7 @@ unsigned char Receive_SPI_Single (void)
 	while ((SPIx->SR & SPI_RXNE) != 0)
 		dummy = SPIx->DR;
 
-	SPIx->DR = 0xff;
+	*(__IO uint8_t *) ((uint32_t)SPIx + (uint32_t)0x0C) = 0xff; //evito enviar 16bits problemas de compilador
 
 	//espero que se transfiera el dato
 	while ((SPIx->SR & SPI_BSY) != 0);
