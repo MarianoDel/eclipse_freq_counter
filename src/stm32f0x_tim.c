@@ -56,7 +56,15 @@ void Wait_ms (unsigned short wait)
 {
 	wait_ms_var = wait;
 
+#ifdef WITH_HARDWARE_WATCHDOG
+	while (wait_ms_var)
+	{
+		KickWatchdog();
+	}
+#else
 	while (wait_ms_var);
+#endif
+
 }
 
 //-------------------------------------------//

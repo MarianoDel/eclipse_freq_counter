@@ -16,11 +16,14 @@
 /* Includes ------------------------------------------------------------------*/
 #include "stm32f0x_gpio.h"
 #include "stm32f0x_tim.h"
+#include "stm32f0xx_it.h"
 #include "hard.h"
 #include "spi.h"
 
 #include "core_cm0.h"
 #include "adc.h"
+#include "main_menu.h"
+#include "lcd.h"
 
 
 //#include <stdio.h>
@@ -44,6 +47,17 @@ volatile unsigned char RxBuffer_SPI [RXBUFFERSIZE];
 volatile unsigned char *pspi_tx;
 volatile unsigned char *pspi_rx;
 volatile unsigned char spi_bytes_left = 0;
+
+// ------- Externals de los timers -------
+volatile unsigned short show_select_timer = 0;
+
+volatile unsigned short scroll1_timer = 0;
+volatile unsigned short scroll2_timer = 0;
+
+volatile unsigned short lcd_backlight_timer = 0;
+
+// ------- Externals del display LCD -------
+const char s_blank_line [] = {"                "};
 
 // ------- Externals del DMX -------
 volatile unsigned char Packet_Detected_Flag;
@@ -113,12 +127,8 @@ unsigned char CheckS2 (void);
 //------------------------------------------//
 int main(void)
 {
+	unsigned char i;
 	unsigned char main_state = 0;
-	unsigned char last_function;
-	unsigned char last_program, last_program_deep;
-	unsigned short last_channel;
-	unsigned short current_temp = 0;
-
 
 	//!< At this stage the microcontroller clock setting is already configured,
     //   this is done through SystemInit() function which is called from startup
@@ -129,53 +139,86 @@ int main(void)
 	//GPIO Configuration.
 	GPIO_Config();
 
-	//TIM Configuration.
-	Timer_1_Init();
-	Timer_2_Init();
-	//Timer_3_Init();
-	//Timer_4_Init();
-
 	//ACTIVAR SYSTICK TIMER
-	 if (SysTick_Config(48000))
-	 {
-		 while (1)	/* Capture error */
-		 {
-			 if (LED)
-				 LED_OFF;
-			 else
-				 LED_ON;
+	if (SysTick_Config(48000))
+	{
+		while (1)	/* Capture error */
+		{
+			if (LED)
+				LED_OFF;
+			else
+				LED_ON;
 
-			 Wait_ms(300);
-		 }
-	 }
+			for (i = 0; i < 255; i++)
+			{
+				asm (	"nop \n\t"
+						"nop \n\t"
+						"nop \n\t" );
+			}
+		}
+	}
+
+	//TIM Configuration.
+//	TIM_3_Init();
+//	TIM_14_Init();			//lo uso para detectar el break en el DMX
+	//TIM_16_Init();		//para OneShoot() cuando funciona en modo master
+	//TIM_17_Init();		//lo uso para el ADC de Igrid
+
+		//--- PRUEBA DISPLAY LCD ---
+//		EXTIOff ();
+		LCDInit();
+		LED_ON;
+
+		//--- Welcome code ---//
+		Lcd_Command(CLEAR);
+		Wait_ms(100);
+		Lcd_Command(CURSOR_OFF);
+		Wait_ms(100);
+		Lcd_Command(BLINK_OFF);
+		Wait_ms(100);
+
+		while (FuncShowBlink ((const char *) "Kirno Technology", (const char *) "  Freq Counter  ", 2, BLINK_NO) != RESP_FINISH);
+		LED_OFF;
+		while (FuncShowBlink ((const char *) "Hardware: V1.0  ", (const char *) "Software: V1.0  ", 1, BLINK_CROSS) != RESP_FINISH);
 
 	 //PRUEBA LED Y OE
-	 /*
+
 	 while (1)
 	 {
 		 if (LED)
 		 {
 			 LED_OFF;
-			 OE_OFF;
+			 LE_OFF;
 		 }
 		 else
 		 {
 			 LED_ON;
-			 OE_ON;
+			 LE_ON;
 		 }
 
 		 Wait_ms(150);
 	 }
-	 */
+
+#ifdef WITH_HARDWARE_WATCHDOG
+		KickWatchdog();
+#endif
+
+		/* SPI configuration ------------------------------------------------------*/
+		//	 SPI_Config();
+
+	 while (1)
+	 {
+		 LED_ON;
+		 Wait_ms(300);
+		 LED_OFF;
+		 Wait_ms(1000);
+	 }
+
 	 //FIN PRUEBA LED Y OE
 
 	 /* SPI configuration ------------------------------------------------------*/
-	 SPI_Config();
+//	 SPI_Config();
 
-	 //DE PRODUCCION Y PARA PRUEBAS EN DMX
-	 Packet_Detected_Flag = 0;
-	 DMX_channel_selected = 1;
-	 DMX_channel_quantity = 4;
 
 	 //DMX_Disa();
 
@@ -464,9 +507,6 @@ int main(void)
 
 
 
-	LED_ON;
-	Wait_ms(300);
-	LED_OFF;
 
 
 
@@ -571,6 +611,17 @@ void TimingDelay_Decrement(void)
 
 	if (switches_timer)
 		switches_timer--;
+
+	//-------- Timers para funciones de seleccion ---------//
+	if (show_select_timer)
+		show_select_timer--;
+
+	if (scroll1_timer)
+		scroll1_timer--;
+
+	if (scroll2_timer)
+		scroll2_timer--;
+
 
 }
 

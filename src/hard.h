@@ -10,6 +10,9 @@
 
 
 //-- Defines For Configuration -------------------
+//---- Configuration for Hardware or Software Watchdog -------
+//#define WITH_HARDWARE_WATCHDOG
+
 //---- Configuration for Hardware Versions -------
 #define VER_1_0
 
@@ -51,8 +54,8 @@
 
 //GPIOB pin4
 #define LE ((GPIOB->ODR & 0x0010) != 0)
-#define LE_OFF GPIOB->BSRR = 0x00000010
-#define LE_ON GPIOB->BSRR = 0x00100000
+#define LE_ON GPIOB->BSRR = 0x00000010
+#define LE_OFF GPIOB->BSRR = 0x00100000
 
 //GPIOB pin5	spi_mosi
 
@@ -60,8 +63,8 @@
 
 //GPIOB pin7
 #define LED ((GPIOB->ODR & 0x0080) != 0)
-#define LED_OFF GPIOB->BSRR = 0x00000080
-#define LED_ON GPIOB->BSRR = 0x00800000
+#define LED_ON GPIOB->BSRR = 0x00000080
+#define LED_OFF GPIOB->BSRR = 0x00800000
 
 
 
@@ -145,6 +148,18 @@
 #define TIMER_STANDBY_TIMEOUT_REDUCED	2000	//reduced 2 segs
 #define TIMER_STANDBY_TIMEOUT			6000	//6 segundos
 #define DMX_DISPLAY_SHOW_TIMEOUT		30000	//30 segundos
+
+//----- Definiciones para timers ------
+//#define TTIMER_FOR_CAT_DISPLAY			2000	//tiempo entre que dice canal y el numero
+//#define TIMER_STANDBY_TIMEOUT_REDUCED	2000	//reduced 2 segs
+//#define TIMER_STANDBY_TIMEOUT			6000	//6 segundos
+//#define DMX_DISPLAY_SHOW_TIMEOUT		30000	//30 segundos
+//#define TT_MENU_ENABLED					30000	//30 segundos
+#define TT_LCD_BACKLIGHT					30000	//30 segundos
+#define TT_UPDATE_BUTTON 80
+#define TT_UPDATE_BUTTON_SPEED 10
+
+
 
 #define S_FULL		10
 #define S_HALF		3
