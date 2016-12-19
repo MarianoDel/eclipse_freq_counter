@@ -24,6 +24,7 @@
 #include "adc.h"
 #include "main_menu.h"
 #include "lcd.h"
+#include "LMX2326.h"
 
 
 //#include <stdio.h>
@@ -55,6 +56,9 @@ volatile unsigned short scroll1_timer = 0;
 volatile unsigned short scroll2_timer = 0;
 
 volatile unsigned short lcd_backlight_timer = 0;
+
+volatile unsigned char new_t = 0;
+volatile unsigned short freq_tim = 0;
 
 // ------- Externals del display LCD -------
 const char s_blank_line [] = {"                "};
@@ -100,12 +104,15 @@ unsigned char vd2 [LARGO_F + 1];
 unsigned char vd3 [LARGO_F + 1];
 unsigned char vd4 [LARGO_F + 1];
 
+float fcalc = 1.0;
+
 
 
 //--- FUNCIONES DEL MODULO ---//
 void Delay(__IO uint32_t nTime);
 void TimingDelay_Decrement(void);
 
+unsigned char EvaluateFreq (unsigned int, unsigned int);
 
 
 
@@ -129,6 +136,11 @@ int main(void)
 {
 	unsigned char i;
 	unsigned char main_state = 0;
+	unsigned short frequency, freq1, freq2, freq3, freq4;
+	unsigned short freq_int = 0;
+	unsigned short freq_dec = 0;
+	char str [20];
+	unsigned char n = 0;
 
 	//!< At this stage the microcontroller clock setting is already configured,
     //   this is done through SystemInit() function which is called from startup
@@ -181,373 +193,115 @@ int main(void)
 		LED_OFF;
 		while (FuncShowBlink ((const char *) "Hardware: V1.0  ", (const char *) "Software: V1.0  ", 1, BLINK_CROSS) != RESP_FINISH);
 
+
 	 //PRUEBA LED Y OE
 
-		 /* SPI configuration ------------------------------------------------------*/
-	 SPI_Config();
-
-	 while (1)
-	 {
-		 if (LED)
-		 {
-			 LED_OFF;
-			 LE_OFF;
-		 }
-		 else
-		 {
-			 LED_ON;
-			 LE_ON;
-			 Send_SPI_Single(0x55);
-		 }
-
-		 Wait_ms(150);
-	 }
-
-#ifdef WITH_HARDWARE_WATCHDOG
-		KickWatchdog();
-#endif
-
 		/* SPI configuration ------------------------------------------------------*/
-		//	 SPI_Config();
+		SPI_Config();
 
+		//--- COMIENZO PROGRAMA DE PRODUCCION
+
+	 LMX2326_Init ();
+	 //LMX2326_SetR ();
+	 LMX2326_SetN ();
+
+	 //--- Main loop ---//
 	 while (1)
 	 {
-		 LED_ON;
-		 Wait_ms(300);
-		 LED_OFF;
-		 Wait_ms(1000);
-	 }
-
-	 //FIN PRUEBA LED Y OE
-
-	 /* SPI configuration ------------------------------------------------------*/
-//	 SPI_Config();
-
-
-	 //DMX_Disa();
-
-	 //PRUEBA DISPLAY
-	 /*
-	 PWR_DS1_OFF;
-	 PWR_DS2_OFF;
-	 PWR_DS3_ON;
-
-	 main_state = TranslateNumber(DISPLAY_LINE);
-	 SendSegment(DISPLAY_DS3, main_state);
-	 while(1);
-	 */
-	 /*
-	 //ShowNumbers(0);
-	 //ShowNumbers(876);
-	 ShowNumbers(666);
-	 //ShowNumbers(111);
-	 while(1)
-	 {
-		 UpdateDisplay ();
-	 }
-	*/
-	 //--- PRUEBA TIM14 DMX
-	 /*
-	 ShowNumbers(0);
-	 while (1)
-	 {
-		 TIM14->CNT = 0;
-		 TIM14->CR1 |= 0x0001;
-
-		 while ((TIM14->CNT) < 2000)
+		 switch (main_state)
 		 {
-		 }
-		 TIM14->CR1 &= ~0x0001;
-		 if (LED)
-			 LED_OFF;
-		 else
-			 LED_ON;
-
-		 UpdateDisplay ();
-	 }
-	 */
-	 //--- FIN PRUEBA TIM14 DMX
-
-	 //--- PRUEBA USART
-	 /*
-	 EXTIOff();
-	 USART_Config();
-	 ShowNumbers(0);
-	 while (1)
-	 {
-		 DMX_channel_received = 0;
-		 data1[0] = 0;
-		 data1[1] = 0;
-		 data1[2] = 0;
-		 USARTSend('M');
-		 USARTSend('E');
-		 USARTSend('D');
-		 Wait_ms(1);
-		 if ((data1[0] == 'M') && (data1[1] == 'E') && (data1[2] == 'D'))
-			 LED_ON;
-		 else
-			 LED_OFF;
-		 Wait_ms(200);
-		 UpdateDisplay ();
-	 }
-	*/
-	 //--- FIN PRUEBA USART
-
-	 //--- PRUEBA EXTI PA8 con DMX
-	 /*
-	 ShowNumbers(0);
-	 while (1)
-	 {
-		 //cuando tiene DMX mueve el LED
-		 EXTIOn();
-		 Wait_ms(200);
-		 EXTIOff();
-		 Wait_ms(200);
-	 }
-	 */
-	 //--- FIN PRUEBA EXTI PA8 con DMX
-
-	 //--- PRUEBA ADC
-	 /*
-		if (ADC_Conf() == 0)
-		{
-			while (1)
-			{
-				if (LED)
-					LED_OFF;
-				else
-					LED_ON;
-
-				Wait_ms(150);
-			}
-		}
-		while (1)
-		{
-			i = ReadADC1(ADC_CH0);
-			if (i > 2048)
-				LED_ON;
-			else
-				LED_OFF;
-			Wait_ms(50);
-			i = i >> 4;
-			 ShowNumbers (i);
-		}
-		*/
-	//--- FIN ADC
-
-		 //--- PRUEBA FAN
-	 /*
-			while (1)
-			{
-				LED_ON;
-				CTRL_FAN_ON;
-				Wait_ms(300);
-				LED_OFF;
-				CTRL_FAN_OFF;
-				Wait_ms(300);
-			}
-			*/
-		//--- FIN FAN
-
-	//--- PRUEBA CH0 DMX con switch de display	inicializo mas arriba USART y variables
-	 /*
-	 while (1)
-	 {
-		 if (CheckS1() > S_NO)
-			 sw_state = 1;
-		 else if (CheckS2() > S_NO)
-			 sw_state = 0;
-
-		 if (sw_state)		//si tengo que estar prendido
-		 {
-			 if (Packet_Detected_Flag)
-			 {
-				 //llego un paquete DMX
-				 Packet_Detected_Flag = 0;
-				 //en data tengo la info
-				 ShowNumbers (data[0]);
-
-				 Update_TIM3_CH1 (data[0]);
-				 Update_TIM3_CH2 (data[1]);
-				 Update_TIM3_CH3 (data[2]);
-				 Update_TIM3_CH4 (data[3]);
-
-			 }
-		 }
-		 else	//apago los numeros
-		 {
-			 ds1_number = 0;
-			 ds2_number = 0;
-			 ds3_number = 0;
-		 }
-
-		 UpdateDisplay ();
-		 UpdateSwitches ();
-
-	 }
-	*/
-	//--- FIN PRUEBA CH0 DMX
-
-	//--- PRUEBA blinking de display	inicializo mas arriba USART y variables
-	 /*
-	ds1_number = 1;
-	ds2_number = 2;
-	ds3_number = 3;
-		 while (1)
-		 {
-			 if (CheckS1() > S_NO)
-			 {
-				 //muevo el display en blinking
-				 display_blinking <<= 1;
-				 if (!(display_blinking & 0x07))
-					 display_blinking = DISPLAY_DS1;
-			 }
-			 else if (CheckS2() > S_NO)
-			 {
-				 //prendo o apago el blinking
-				 if (sw_state)
+			 case TAKE_FREQ:
+				 if (new_t)
 				 {
-					 display_blinking = 0;
-					 sw_state = 0;
-				 }
-				 else
-				 {
-					 display_blinking = DISPLAY_DS1;
-					 sw_state = 1;
-				 }
-			 }
-
-			 UpdateDisplay ();
-			 UpdateSwitches ();
-
-		 }
-
-	  */
-	//--- FIN PRUEBA blinking display con switches
-
-	//--- PRUEBA CHANNELS PWM
-	/*
-	while (1)
-	{
-		for (i = 0; i < 255; i++)
-		{
-			Update_TIM3_CH1 (i);
-			Update_TIM3_CH2 (i);
-			Update_TIM3_CH3 (i);
-			Update_TIM3_CH4 (i);
-
-			Wait_ms(100);
-		}
-	}
-	*/
-	//--- FIN PRUEBA CHANNELS PWM
-
-	 //--- PRUEBA SWITCHES
-	 /*
-	 i = 0;
-	 while (1)
-	 {
-			 switch (swi)
-			 {
-				 case 0:
-					 s_local = CheckS1();
-					 if (s_local > S_NO)
-						 swi++;
-					 else
+					 new_t = 0;
+					 //tengo un periodo
+					 switch (n)
 					 {
-						 s_local = CheckS2();
-						 if (s_local > S_NO)
-							 swi = 10;
+						 case 0:
+							 n = 1;
+							 freq1 = freq_tim;
+							 break;
+
+						 case 1:
+							 freq2 = freq_tim;
+							 if (EvaluateFreq(freq1, freq2))
+								 n++;
+							 else
+								 n = 0;
+
+							 break;
+
+						 case 2:
+							 freq3 = freq_tim;
+							 if (EvaluateFreq(freq2, freq3))
+								 n++;
+							 else
+								 n = 0;
+
+							 break;
+
+						 case 3:
+							 freq4 = freq_tim;
+							 if (EvaluateFreq(freq3, freq4))
+							 {
+								 main_state = CALC_FREQ;
+								 frequency = freq1 + freq2 + freq3 + freq4;
+								 frequency >>= 2;
+							 }
+							 else
+								 n = 0;
+
+							 break;
+
 					 }
+				 }
+				 break;
 
-					 break;
+			 case CALC_FREQ:
+				 //corrijo el defasaje
+				 //supongo dividido 10000; 43KHz
+				 fcalc = 48e6 / frequency;
+				 freq_int = (short) (fcalc / 100);
+				 fcalc = fcalc - freq_int * 100;
+				 freq_dec = (short) fcalc;
 
-				 case 1:
-					 i += s_local;
-					 LED_ON;
-					 swi++;
-					 break;
+				 main_state = SHOW_FREQ;
 
-				 case 2:
-					 //espero que se libere
-					 s_local = CheckS1();
-					 if (s_local == S_NO)
-						 swi = 0;
+				 break;
 
-					 break;
+			 case SHOW_FREQ:
+				 //muestro resultados
+				 //LED1_ON;		//muestra en aprox 120ms
+				 LCD_1ER_RENGLON;
+				 sprintf(str, "FREQ= %3d.%03d    ", freq_int, freq_dec);
+				 LCDTransmitStr(str);
 
-				 case 10:
-					 LED_OFF;
-					 if (i)
-						 i--;
-					swi++;
-					break;
+				 LCD_2DO_RENGLON;
+				 LCDTransmitStr((char *) s_blank_line);
 
-				 case 11:
-					 s_local = CheckS2();
-					 if (s_local == S_NO)
-						 swi = 0;
-					break;
+				 main_state = WAITING_SHOW;
 
-				 default:
-					 swi = 0;
-					 break;
+				 break;
 
+			 case WAITING_SHOW:
+				 Wait_ms(300);
+				 main_state = TAKE_FREQ;
+				 break;
+
+			 default:
+				 main_state = TAKE_FREQ;
+				 break;
 		 }
 
-
-		 ShowNumbers(i);
-		 UpdateDisplay ();
-		 UpdateSwitches ();
-	 }
-	 */
-	 //--- FIN PRUEBA SWITCHES
-
-
-	 //--- COMIENZO PROGRAMA DE PRODUCCION
+	 }	//termina while(1)
 
 	 //inicio cuestiones particulares
 	 //iniciar variables de usao del programa segun funcion de memoria
 
 
-
-
-
-
-
-	//--- Main loop ---//
-	while(1)
-	{
-		//PROGRAMA DE PRODUCCION
-
-		//prueba DMX_ena() DMX_dis()
-		/*
-		if (!timer_standby)
-		{
-			timer_standby = 3000;
-			if (swi)
-			{
-				swi = 0;
-				DMX_Ena();
-			}
-			else
-			{
-				DMX_Disa();
-				swi = 1;
-			}
-		}
-		*/
-
-		switch (main_state)
-		{
-
-			default:
-				main_state = MAIN_INIT;
-				break;
-
-		}
-
-	}	//termina while(1)
+#ifdef WITH_HARDWARE_WATCHDOG
+		KickWatchdog();
+#endif
 
 	return 0;
 }
@@ -558,6 +312,29 @@ void Update_PWM (unsigned short pwm)
 {
 	Update_TIM3_CH1 (pwm);
 	Update_TIM3_CH2 (4095 - pwm);
+}
+
+//Recibe dos freq (timers) y revisa cercania +/- 10%
+//contesta 1 ok 0 nok
+unsigned char EvaluateFreq (unsigned int f1, unsigned int f2)
+{
+	unsigned int percent = 0;
+
+	percent = f1 / 10;
+
+	if (f1 > f2)
+	{
+		f1 -= f2;
+		if (f1 < percent)
+			return 1;
+	}
+	else
+	{
+		f2 -= f1;
+		if (f2 < percent)
+			return 1;
+	}
+	return 0;
 }
 
 

@@ -112,6 +112,7 @@ SRC += .\src\watchdog.c
 #SRC += .\src\stm32f0x_uart.c
 #SRC += .\src\flash_program.c
 SRC += .\src\main_menu.c
+SRC += .\src\LMX2326.c
 ## System Support
 #SRC += .\cmsis_boot\system_stm32f0xx.c
 #SRC += $(DISCOVERY)\stm32f0_discovery.c
