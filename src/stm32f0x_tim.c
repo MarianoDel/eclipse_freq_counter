@@ -99,8 +99,8 @@ void TIM_3_Init (void)
 	//Configuracion del timer.
 	TIM3->CR1 = 0x00;		//clk int / 1; upcounting
 	TIM3->CR2 = 0x00;		//igual al reset
-	//TIM3->CCMR1 = 0x0011;			//CH1 filtro N=2, input capt TI1
-	TIM3->CCMR1 = 0x0001;			//CH1 sin filtro, input capt TI1
+	TIM3->CCMR1 = 0x0011;			//CH1 filtro N=2, input capt TI1
+	//TIM3->CCMR1 = 0x0001;			//CH1 sin filtro, input capt TI1
 	TIM3->CCMR2 = 0x0000;			//CH4 y CH3 no uso
 
 	TIM3->CCER = 0x01;	//CH1 enabled trigger rising edge

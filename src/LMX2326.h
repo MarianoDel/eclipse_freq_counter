@@ -9,7 +9,8 @@
 #define LMX2326_H_
 
 
-void LMX2326_Init (void);
+void LMX2326_InitN (void);
+void LMX2326_InitR (void);
 void LMX2326_SetR (void);
 void LMX2326_SetN (void);
 

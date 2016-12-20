@@ -136,8 +136,15 @@ int main(void)
 {
 	unsigned char i;
 	unsigned char main_state = 0;
+#ifdef FOUR_FILTER
 	unsigned short trans1, trans2, trans3, trans4, trans5;
 	unsigned short per1, per2, per3, per4;
+#endif
+#ifdef SIXTEEN_FILTER
+	unsigned short trans[16];
+	unsigned short per[16];
+#endif
+
 	unsigned int period = 0;
 	unsigned short freq_int = 0;
 	unsigned short freq_dec = 0;
@@ -203,17 +210,16 @@ int main(void)
 
 		//--- COMIENZO PROGRAMA DE PRODUCCION
 
-	 LMX2326_Init ();
-	 //LMX2326_SetR ();
+//	 LMX2326_InitR ();
+//	 LMX2326_SetR ();
+	 LMX2326_InitN ();
 	 LMX2326_SetN ();
 
-//	 //pruebo input PA6
+//	 //pruebo salida SPI
 //	 while (1)
 //	 {
-//		 if (FREQ_PIN)
-//			 LED_ON;
-//		 else
-//			 LED_OFF;
+//		 LMX2326_SetN ();
+//		 Wait_ms(200);
 //	 }
 
 
@@ -226,6 +232,7 @@ int main(void)
 				 if (new_t)
 				 {
 					 new_t = 0;
+#ifdef FOUR_FILTER
 					 //tengo un periodo
 					 switch (n)		//n son los flancos
 					 {
@@ -309,6 +316,21 @@ int main(void)
 
 							 break;
 					 }
+#endif
+#ifdef SIXTEEN_FILTER
+					 if (n > 0)		//venia teniendo transcisiones
+					 {
+						 if (n & 0x01)	//es impar, es el comienzo de una nueva transcision
+						 {
+
+
+						 }
+						 else			//es par es el final de la transcision
+						 {
+
+						 }
+					 }
+#endif
 				 }
 
 				 if (!timer_standby)

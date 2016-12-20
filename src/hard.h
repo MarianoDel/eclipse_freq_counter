@@ -16,6 +16,9 @@
 //---- Configuration for Hardware Versions -------
 #define VER_1_0
 
+//---- Configuration for Software Versions -------
+#define FOUR_FILTER
+//#define SIXTEEN_FILTER
 
 //-- End Of Defines For Configuration ---------------
 
