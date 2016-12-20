@@ -27,8 +27,8 @@
 #include "LMX2326.h"
 
 
-//#include <stdio.h>
-//#include <string.h>
+#include <stdio.h>
+#include <string.h>
 
 
 
@@ -64,17 +64,17 @@ volatile unsigned short freq_tim = 0;
 const char s_blank_line [] = {"                "};
 
 // ------- Externals del DMX -------
-volatile unsigned char Packet_Detected_Flag;
-volatile unsigned char dmx_receive_flag = 0;
-volatile unsigned char DMX_channel_received = 0;
-volatile unsigned char DMX_channel_selected = 1;
-volatile unsigned char DMX_channel_quantity = 4;
-
-volatile unsigned char data1[512];
-//static unsigned char data_back[10];
-volatile unsigned char data[10];
-
-volatile unsigned short prog_timer = 0;
+//volatile unsigned char Packet_Detected_Flag;
+//volatile unsigned char dmx_receive_flag = 0;
+//volatile unsigned char DMX_channel_received = 0;
+//volatile unsigned char DMX_channel_selected = 1;
+//volatile unsigned char DMX_channel_quantity = 4;
+//
+//volatile unsigned char data1[512];
+////static unsigned char data_back[10];
+//volatile unsigned char data[10];
+//
+//volatile unsigned short prog_timer = 0;
 
 //--- VARIABLES GLOBALES ---//
 
@@ -87,22 +87,22 @@ volatile unsigned char switches_timer;
 volatile unsigned char filter_timer;
 
 
-volatile unsigned char door_filter;
-volatile unsigned char take_sample;
-volatile unsigned char move_relay;
-
-volatile unsigned char secs = 0;
-volatile unsigned short minutes = 0;
-
+//volatile unsigned char door_filter;
+//volatile unsigned char take_sample;
+//volatile unsigned char move_relay;
+//
+//volatile unsigned char secs = 0;
+//volatile unsigned short minutes = 0;
+//
 
 // ------- de los filtros DMX -------
-#define LARGO_F		32
-#define DIVISOR_F	5
-unsigned char vd0 [LARGO_F + 1];
-unsigned char vd1 [LARGO_F + 1];
-unsigned char vd2 [LARGO_F + 1];
-unsigned char vd3 [LARGO_F + 1];
-unsigned char vd4 [LARGO_F + 1];
+//#define LARGO_F		32
+//#define DIVISOR_F	5
+//unsigned char vd0 [LARGO_F + 1];
+//unsigned char vd1 [LARGO_F + 1];
+//unsigned char vd2 [LARGO_F + 1];
+//unsigned char vd3 [LARGO_F + 1];
+//unsigned char vd4 [LARGO_F + 1];
 
 float fcalc = 1.0;
 
@@ -136,7 +136,9 @@ int main(void)
 {
 	unsigned char i;
 	unsigned char main_state = 0;
-	unsigned short frequency, freq1, freq2, freq3, freq4;
+	unsigned short trans1, trans2, trans3, trans4, trans5;
+	unsigned short per1, per2, per3, per4;
+	unsigned int period = 0;
 	unsigned short freq_int = 0;
 	unsigned short freq_dec = 0;
 	char str [20];
@@ -171,7 +173,7 @@ int main(void)
 	}
 
 	//TIM Configuration.
-//	TIM_3_Init();
+	TIM_3_Init();		//input capture cuenta pulsos
 //	TIM_14_Init();			//lo uso para detectar el break en el DMX
 	//TIM_16_Init();		//para OneShoot() cuando funciona en modo master
 	//TIM_17_Init();		//lo uso para el ADC de Igrid
@@ -205,6 +207,16 @@ int main(void)
 	 //LMX2326_SetR ();
 	 LMX2326_SetN ();
 
+//	 //pruebo input PA6
+//	 while (1)
+//	 {
+//		 if (FREQ_PIN)
+//			 LED_ON;
+//		 else
+//			 LED_OFF;
+//	 }
+
+
 	 //--- Main loop ---//
 	 while (1)
 	 {
@@ -215,25 +227,40 @@ int main(void)
 				 {
 					 new_t = 0;
 					 //tengo un periodo
-					 switch (n)
+					 switch (n)		//n son los flancos
 					 {
 						 case 0:
 							 n = 1;
-							 freq1 = freq_tim;
+							 trans1 = freq_tim;
 							 break;
 
 						 case 1:
-							 freq2 = freq_tim;
-							 if (EvaluateFreq(freq1, freq2))
-								 n++;
+							 trans2 = freq_tim;
+							 if (trans1 < trans2)	//no dio la vuelta
+							 {
+								 per1 = trans2 - trans1;
+							 }
 							 else
-								 n = 0;
-
+							 {
+								 per1 = 0xFFFF - trans1;
+								 per1 += trans2;
+							 }
+							 n++;
 							 break;
 
 						 case 2:
-							 freq3 = freq_tim;
-							 if (EvaluateFreq(freq2, freq3))
+							 trans3 = freq_tim;
+							 if (trans2 < trans3)	//no dio la vuelta
+							 {
+								 per2 = trans3 - trans2;
+							 }
+							 else
+							 {
+								 per2 = 0xFFFF - trans2;
+								 per2 += trans3;
+							 }
+
+							 if (EvaluateFreq(per1, per2))
 								 n++;
 							 else
 								 n = 0;
@@ -241,26 +268,65 @@ int main(void)
 							 break;
 
 						 case 3:
-							 freq4 = freq_tim;
-							 if (EvaluateFreq(freq3, freq4))
+							 trans4 = freq_tim;
+							 if (trans3 < trans4)	//no dio la vuelta
 							 {
-								 main_state = CALC_FREQ;
-								 frequency = freq1 + freq2 + freq3 + freq4;
-								 frequency >>= 2;
+								 per3 = trans4 - trans3;
 							 }
+							 else
+							 {
+								 per3 = 0xFFFF - trans3;
+								 per3 += trans4;
+							 }
+
+							 if (EvaluateFreq(per2, per3))
+								 n++;
 							 else
 								 n = 0;
 
 							 break;
 
+						 case 4:
+							 trans5 = freq_tim;
+							 if (trans5 < trans4)	//no dio la vuelta
+							 {
+								 per4 = trans5 - trans4;
+							 }
+							 else
+							 {
+								 per4 = 0xFFFF - trans4;
+								 per4 += trans5;
+							 }
+
+							 if (EvaluateFreq(per3, per4))
+							 {
+								 main_state = CALC_FREQ;
+								 period = per1 + per2 + per3 + per4;
+								 period >>= 2;
+							 }
+							 else
+								 n = 0;
+
+							 break;
 					 }
 				 }
+
+				 if (!timer_standby)
+				 {
+					 timer_standby = 2000;
+					 LCD_1ER_RENGLON;
+					 LCDTransmitStr((char *) (const char *) "No carrier      ");
+
+					 LCD_2DO_RENGLON;
+					 LCDTransmitStr(s_blank_line);
+				 }
+
 				 break;
 
 			 case CALC_FREQ:
 				 //corrijo el defasaje
 				 //supongo dividido 10000; 43KHz
-				 fcalc = 48e6 / frequency;
+				 fcalc = 48e6 / period;
 				 freq_int = (short) (fcalc / 100);
 				 fcalc = fcalc - freq_int * 100;
 				 freq_dec = (short) fcalc;
@@ -273,19 +339,24 @@ int main(void)
 				 //muestro resultados
 				 //LED1_ON;		//muestra en aprox 120ms
 				 LCD_1ER_RENGLON;
-				 sprintf(str, "FREQ= %3d.%03d    ", freq_int, freq_dec);
+				 sprintf(str, "Fq = %3d.%03d MHz", freq_int, freq_dec);
 				 LCDTransmitStr(str);
 
 				 LCD_2DO_RENGLON;
-				 LCDTransmitStr((char *) s_blank_line);
+				 sprintf(str, "pulses = %5d ", period);
+				 LCDTransmitStr(str);
 
+				 timer_standby = 300;
 				 main_state = WAITING_SHOW;
 
 				 break;
 
 			 case WAITING_SHOW:
-				 Wait_ms(300);
-				 main_state = TAKE_FREQ;
+				 if (!timer_standby)
+				 {
+					 timer_standby = 2000;
+					 main_state = TAKE_FREQ;
+				 }
 				 break;
 
 			 default:
@@ -293,10 +364,13 @@ int main(void)
 				 break;
 		 }
 
+		 //inicio cuestiones particulares
+		 //iniciar variables de usao del programa segun funcion de memoria
+
+
+
 	 }	//termina while(1)
 
-	 //inicio cuestiones particulares
-	 //iniciar variables de usao del programa segun funcion de memoria
 
 
 #ifdef WITH_HARDWARE_WATCHDOG
@@ -340,43 +414,6 @@ unsigned char EvaluateFreq (unsigned int f1, unsigned int f2)
 
 
 
-unsigned char MAFilter (unsigned char new_sample, unsigned char * vsample)
-{
-	unsigned short total_ma;
-	unsigned char j;
-
-	//Kernel mejorado ver 2
-	//si el vector es de 0 a 7 (+1) sumo todas las posiciones entre 1 y 8, acomodo el nuevo vector entre 0 y 7
-	total_ma = 0;
-	*(vsample + LARGO_F) = new_sample;
-
-    for (j = 0; j < (LARGO_F); j++)
-    {
-    	total_ma += *(vsample + j + 1);
-    	*(vsample + j) = *(vsample + j + 1);
-    }
-
-    return total_ma >> DIVISOR_F;
-}
-
-unsigned short MAFilter16 (unsigned char new_sample, unsigned char * vsample)
-{
-	unsigned short total_ma;
-	unsigned char j;
-
-	//Kernel mejorado ver 2
-	//si el vector es de 0 a 7 (+1) sumo todas las posiciones entre 1 y 8, acomodo el nuevo vector entre 0 y 7
-	total_ma = 0;
-	*(vsample + LARGO_F) = new_sample;
-
-    for (j = 0; j < (LARGO_F); j++)
-    {
-    	total_ma += *(vsample + j + 1);
-    	*(vsample + j) = *(vsample + j + 1);
-    }
-
-    return total_ma >> DIVISOR_F;
-}
 
 
 void TimingDelay_Decrement(void)

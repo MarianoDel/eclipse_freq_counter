@@ -35,7 +35,7 @@
 #define LCD_RS_OFF GPIOA->BSRR = 0x00200000
 
 //GPIOA pin6
-#define FREQ_PIN ((GPIOA->IDR & 0x0004) == 0)
+#define FREQ_PIN ((GPIOA->IDR & 0x0040) != 0)
 
 //GPIOA pin7
 //GPIOA pin8

@@ -94,10 +94,13 @@ void LMX2326_SetN (void)
 	//		 //Send_SPI_Multiple(0x10);		//0x20    00100000; C1=1 C2=0, N counter / 1000
 	//		 Send_SPI_Multiple(0x01);		//0x01
 
-	Send_SPI_Multiple(0x00);		//0x00
-	Send_SPI_Multiple(0x3E);		//0x00
-	//Send_SPI_Multiple(0x10);		//0x20    00100000; C1=1 C2=0, N counter / 125
-	Send_SPI_Multiple(0x81);		//0x01
+//	Send_SPI_Multiple(0x00);		//0x00
+//	Send_SPI_Multiple(0x3E);		//0x00
+//	Send_SPI_Multiple(0x81);		//0x01		00100000; C1=1 C2=0, N counter / 125
+
+	Send_SPI_Multiple(0x02);		//0x00
+	Send_SPI_Multiple(0x71);		//0x00
+	Send_SPI_Multiple(0x01);		//0x01		00100000; C1=1 C2=0, N counter / 1250
 
 	Wait_SPI_Busy ();
 	LED_OFF;
